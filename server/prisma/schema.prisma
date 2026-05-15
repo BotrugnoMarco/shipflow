@@ -1,0 +1,107 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --- SCHEMA MULTI-TENANT ---
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  users     User[]
+  customers Customer[]
+  carriers  Carrier[]
+  shipments Shipment[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("OPERATOR")
+  companyId    Int
+  company      Company  @relation(fields: [companyId], references: [id])
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  zipCode   String?
+  province  String?
+  country   String?
+  vatId     String?
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id])
+  shipments Shipment[]
+}
+
+model Carrier {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String?
+  apiEndpoint String?
+  apiKey      String?
+  apiSecret   String?
+  trackingUrl String?
+  basePrice   Float?   @default(0)
+  pricePerKg  Float?   @default(0)
+  companyId   Int
+  company     Company  @relation(fields: [companyId], references: [id])
+  shipments   Shipment[]
+}
+
+model Shipment {
+  id              Int       @id @default(autoincrement())
+  trackingNumber  String    @unique
+  status          String    @default("PENDING") // PENDING, IN_TRANSIT, DELIVERED, EXCEPTION
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  scheduledDate   DateTime?
+  deliveredDate   DateTime?
+
+  senderName      String?
+  senderAddress   String?
+  senderCity      String?
+  senderZip       String?
+  senderProvince  String?
+  senderCountry   String?
+  senderEmail     String?
+  senderPhone     String?
+  
+  recipientName   String
+  recipientAddress String
+  recipientCity    String?
+  recipientZip     String?
+  recipientProvince String?
+  recipientCountry  String?
+  recipientEmail  String?
+  recipientPhone  String?
+  
+  shippingAddress String?
+
+  weight          Float?    @default(0)
+  packages        Int       @default(1)
+  price           Float?    @default(0)
+  notes           String?
+
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id])
+  
+  customerId      Int?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  
+  carrierId       Int?
+  carrier         Carrier?  @relation(fields: [carrierId], references: [id])
+}
